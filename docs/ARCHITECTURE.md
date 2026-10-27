@@ -4,7 +4,13 @@ How the binary is built, what it stores, how it plugs into other tools, and what
 
 Placeholders: `<TEAMID>` vendor team ID, `<cdhash>` code-directory hash, `<fp>` store key fingerprint. `~` is the home directory from the user database.
 
-Diagrams: [`overview.drawio`](overview.drawio) (one page for users), [`architecture.drawio`](architecture.drawio) (components and the `assume` flow).
+Diagrams (PNG exports; edit the `.drawio` sources, then re-export):
+
+- [`overview.png`](overview.png) from [`overview.drawio`](overview.drawio): one page for users
+- [`architecture-components.png`](architecture-components.png) from [`architecture.drawio`](architecture.drawio), page "Components"
+- [`architecture-assume-flow.png`](architecture-assume-flow.png) from [`architecture.drawio`](architecture.drawio), page "assume flow"
+
+[![Components and trust boundaries](architecture-components.png)](architecture-components.png)
 
 ## 1. Architecture
 

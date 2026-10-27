@@ -15,6 +15,8 @@ It has no dependencies beyond Apple frameworks.
 
 Granted and similar tools keep SSO tokens and session credentials in the login keychain or in files. Any script, AI agent or piece of malware running as you can read those files, and a keychain item protects them only as far as its access settings reach. With touchid-gate the token sits encrypted on disk, the decryption key never leaves the Secure Enclave, and you approve each use with your finger. The prompt names the calling program and its command line.
 
+[![What happens on every `assume`](docs/overview.png)](docs/overview.png)
+
 ## Requirements
 
 - macOS 13 or later
@@ -174,7 +176,12 @@ Rule of thumb: put your finger on the sensor only when you just started the comm
 
 Each store has one P-256 key in the Secure Enclave. Each entry gets a fresh ephemeral P-256 key, ECDH with the store key, HKDF-SHA256 (bound to the entry name) and AES-256-GCM. An HMAC-SHA256 over the entry protects against planted entries; its key comes from an ECDH between the store key and a public key whose private half `init` throws away, so only the Secure Enclave can compute it. `config.json` pins a SHA-256 fingerprint of the store's public keys and its policy.
 
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) covers the modes, file formats, crypto and threat model in detail.
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) covers the modes, file formats, crypto and threat model in detail. Diagrams:
+
+- [Components and trust boundaries](docs/architecture-components.png)
+- [The `assume` flow, step by step](docs/architecture-assume-flow.png)
+
+The `.drawio` sources next to the images open in [draw.io](https://app.diagrams.net) or the draw.io desktop app.
 
 Entries end in `.gpg` because the keyring pass backend looks for that suffix. They contain JSON, not OpenPGP, so the real `pass` cannot read them.
 
