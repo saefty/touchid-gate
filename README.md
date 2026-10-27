@@ -30,7 +30,7 @@ swift build -c release
 swift run selftest                       # optional: runs the self-checks
 mkdir -p ~/bin
 cp .build/release/touchid-gate ~/bin/
-codesign -s - -o runtime -f ~/bin/touchid-gate   # ad-hoc sign with hardened runtime
+codesign -s - -i touchid-gate -o runtime -f ~/bin/touchid-gate   # ad-hoc, hardened runtime, stable identifier
 ```
 
 The examples below call `touchid-gate` by name, so put `~/bin` on your `PATH` or use the full path.
