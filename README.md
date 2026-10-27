@@ -131,6 +131,61 @@ touchid-gate auth "deploy production" && make deploy
 
 Exits 0 when you approve. It accepts the login password as well.
 
+## How-to: `.env` files
+
+You can keep a project's `.env` in a store instead of in plaintext next to the code, and load it with a fingerprint each time.
+
+The caller here is your shell, so the store has to trust zsh (or bash). Both ship with macOS and carry stable Apple signatures. A Homebrew shell such as fish is only ad-hoc signed; its requirement would be a `cdhash` that breaks on every `brew upgrade`. Run the commands below inside zsh.
+
+Trusting zsh means **any zsh process can ask for the secrets**. The caller check filters out other programs, but Touch ID is your only real barrier. The prompt shows the zsh command line, e.g. `zsh -c "docker run ..."` for a script, but just `-zsh` for your interactive shell.
+
+**1. Add a store** to `config.json`:
+
+```json
+"env": {
+  "path": "~/.local/share/touchid-gate/env",
+  "label": "your .env secrets",
+  "callers": ["identifier \"com.apple.zsh\" and anchor apple"]
+}
+```
+
+**2. Create the key.** `init` creates the store directory but not its parents.
+
+```sh
+mkdir -m 700 -p ~/.local/share/touchid-gate
+touchid-gate init env
+touchid-gate install pass   # if you have not done so for Granted
+```
+
+**3. Add a helper** to `~/.zshrc`:
+
+```zsh
+envpass() { PASSWORD_STORE_DIR=~/.local/share/touchid-gate/env ~/.local/touchid-gate/libexec/pass "$@" }
+```
+
+**4. Move a `.env` into the store:**
+
+```zsh
+envpass insert -m myapp/env < .env && rm .env
+```
+
+`rm` does not scrub the old file from backups or Time Machine. Rotate any secret that matters.
+
+**5. Load it** (one prompt per load):
+
+```zsh
+# into the current shell, exported to everything you start from it
+set -a; source <(envpass show myapp/env); set +a
+
+# straight into a container or a Node process, never into your shell
+docker run --env-file <(envpass show myapp/env) myimage
+node --env-file=<(envpass show myapp/env) app.js
+```
+
+`source` runs the file as shell code, so only use it for files you wrote. Docker reads values literally: `GREETING="hello world"` arrives with the quotes. Node strips them.
+
+To replace the file, run `envpass insert -m myapp/env < new.env`. To delete it, run `envpass rm myapp/env` (no prompt).
+
 ## Configuration
 
 `~/.config/touchid-gate/config.json`. touchid-gate takes the home directory from the user database, not from `$HOME`, and has no environment override for this path. The file and every directory above it up to your home must not be writable by group or others.
