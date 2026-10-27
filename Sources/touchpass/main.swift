@@ -1,9 +1,9 @@
 // Dispatches on the name it is invoked under:
 //   pass show|insert|rm <name>            store mode, for tools using `pass` or the keyring pass backend
 //   <gate name> …                         optional Touch ID, then exec the configured real binary
-//   touchid-gate init <store>             create the store key (unless the pinned one is intact) and pin it
-//   touchid-gate install <name>           link a gate into ~/.local/touchid-gate/bin, `pass` into libexec
-//   touchid-gate auth <reason…>           Touch ID or login password check for scripts (exit 0 = approved)
+//   touchpass init <store>             create the store key (unless the pinned one is intact) and pin it
+//   touchpass install <name>           link a gate into ~/.local/touchpass/bin, `pass` into libexec
+//   touchpass auth <reason…>           Touch ID or login password check for scripts (exit 0 = approved)
 import CryptoKit
 import Darwin
 import Foundation
@@ -11,13 +11,13 @@ import GateCore
 import LocalAuthentication
 import Security
 
-let binDir = realHome + "/.local/touchid-gate/bin"
+let binDir = realHome + "/.local/touchpass/bin"
 // deliberately not on PATH: only gates with "withPass" see it, so a real `pass` keeps working
-let libexecDir = realHome + "/.local/touchid-gate/libexec"
+let libexecDir = realHome + "/.local/touchpass/libexec"
 let maxEntry = 1 << 20
 
 func fail(_ e: Error) -> Never {
-    fputs("touchid-gate: \(e)\n", stderr)
+    fputs("touchpass: \(e)\n", stderr)
     exit((e as? GateError)?.exitCode ?? 1)
 }
 
@@ -117,7 +117,7 @@ func loadStoreKey(_ storeFd: Int32) throws -> StoreKey {
 /// against `ctx` (not yet evaluated, so this check never prompts).
 func pinnedKey(_ storeFd: Int32, _ store: StoreConfig, storeName: String,
                ctx: LAContext) throws -> (SecureEnclave.P256.KeyAgreement.PrivateKey, StoreKey) {
-    guard let pin = store.key else { throw GateError("store '\(storeName)' is not initialised; run: touchid-gate init \(storeName)") }
+    guard let pin = store.key else { throw GateError("store '\(storeName)' is not initialised; run: touchpass init \(storeName)") }
     let key = try loadStoreKey(storeFd)
     let se = try SecureEnclave.P256.KeyAgreement.PrivateKey(dataRepresentation: key.seKey, authenticationContext: ctx)
     // no "re-run init" hint: init replaces the key, so a tampered store should be looked at first
@@ -127,7 +127,7 @@ func pinnedKey(_ storeFd: Int32, _ store: StoreConfig, storeName: String,
     // the SE key's ACL is fixed at init; a config asking for another policy would get the old one
     guard key.policy == store.policy else {
         throw GateError("store '\(storeName)' key has policy \(key.policy?.rawValue ?? "unknown"), the config says "
-            + "\(store.policy.rawValue); run: touchid-gate init \(storeName) (new key, entries are removed)")
+            + "\(store.policy.rawValue); run: touchpass init \(storeName) (new key, entries are removed)")
     }
     return (se, key)
 }
@@ -141,7 +141,7 @@ func promptText(_ verb: String, _ store: StoreConfig, storeName: String, caller:
 func enclave<T>(_ dir: String, _ body: () throws -> T) throws -> T {
     do { return try body() } catch let e as GateError { throw e } catch {
         throw GateError("Secure Enclave refused (\(error.localizedDescription)); if fingerprints changed under "
-            + "policy biometryCurrentSet: rm -r \(dir), run touchid-gate init, log in again")
+            + "policy biometryCurrentSet: rm -r \(dir), run touchpass init, log in again")
     }
 }
 
@@ -264,10 +264,10 @@ func gateMode(_ name: String, _ args: [String]) throws -> Never {
     }
     try checkOwnerAndMode(st, path: resolved)
     try checkNoAllowACL(path: resolved) { acl_get_file(resolved, ACL_TYPE_EXTENDED) }
-    // by inode, so a hardlink to touchid-gate cannot exec itself in a loop
+    // by inode, so a hardlink to touchpass cannot exec itself in a loop
     var me = stat()
     if let exe = Bundle.main.executablePath, stat(exe, &me) == 0, me.st_dev == st.st_dev, me.st_ino == st.st_ino {
-        throw GateError("gate '\(name)' points at touchid-gate itself")
+        throw GateError("gate '\(name)' points at touchpass itself")
     }
     if gate.withPass {
         setenv("PATH", libexecDir + ":" + (ProcessInfo.processInfo.environment["PATH"] ?? "/usr/bin:/bin"), 1)
@@ -309,12 +309,12 @@ do {
     switch invokedAs {
     case "pass":
         try passMode(rest)
-    case "touchid-gate":
+    case "touchpass":
         switch rest.first {
         case "init" where rest.count == 2: try initStore(rest[1])
         case "install" where rest.count == 2: try install(rest[1])
         case "auth": try authenticate(rest.dropFirst().map(printable).joined(separator: " "))
-        default: throw GateError.usage("usage: touchid-gate init <store> | install <name> | auth <reason…>")
+        default: throw GateError.usage("usage: touchpass init <store> | install <name> | auth <reason…>")
         }
     default:
         try gateMode(invokedAs, rest)

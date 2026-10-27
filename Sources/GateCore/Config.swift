@@ -5,7 +5,7 @@ public struct Config: Codable {
     public var stores: [String: StoreConfig] = [:]
     public var gates: [String: GateConfig] = [:]
 
-    public static var defaultURL: URL { expandTilde("~/.config/touchid-gate/config.json") }
+    public static var defaultURL: URL { expandTilde("~/.config/touchpass/config.json") }
 
     public init(stores: [String: StoreConfig] = [:], gates: [String: GateConfig] = [:]) {
         self.stores = stores
@@ -54,7 +54,7 @@ public struct Config: Codable {
         for (name, gate) in gates {
             guard gate.bin.hasPrefix("/") else { throw GateError("gate '\(name)': bin must be an absolute path") }
             // dispatch handles these names first, so such a gate could never run
-            guard name != "pass" && name != "touchid-gate" else { throw GateError("gate name '\(name)' is reserved") }
+            guard name != "pass" && name != "touchpass" else { throw GateError("gate name '\(name)' is reserved") }
             // an empty list would silently mean "never prompt"
             guard gate.only?.isEmpty != true else { throw GateError("gate '\(name)': only must not be empty; omit it to always prompt") }
         }
@@ -116,7 +116,7 @@ public struct StoreConfig: Codable {
     public var callers: [String] = []
     /// What the prompt says is being unlocked, e.g. "your AWS SSO login". Defaults to the store name.
     public var label: String?
-    /// Fingerprint of the store key, written by `touchid-gate init`. Nothing is read or
+    /// Fingerprint of the store key, written by `touchpass init`. Nothing is read or
     /// written while it does not match `.enclave-key`.
     public var key: String?
 

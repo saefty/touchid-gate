@@ -136,7 +136,7 @@ check(throwsError { try Config(gates: ["pass": GateConfig(bin: "/x")]).validate(
 check(throwsError { try Config(gates: ["g": GateConfig(bin: "/x", only: [])]).validate() }, "empty only refused")
 
 // file handling: symlinks, foreign-writable files, directories as items
-let tmp = NSTemporaryDirectory() + "touchid-gate-selftest-\(getpid())"
+let tmp = NSTemporaryDirectory() + "touchpass-selftest-\(getpid())"
 mkdir(tmp, 0o700)
 try writeAtomically(Data("x".utf8), directory: tmp, name: "f")
 var st = stat()

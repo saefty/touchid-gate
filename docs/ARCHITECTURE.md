@@ -1,4 +1,4 @@
-# touchid-gate: architecture
+# touchpass: architecture
 
 How the binary is built, what it stores, how it plugs into other tools, and what it defends against. Start with the [README](../README.md) for installation and the short security model.
 
@@ -19,7 +19,7 @@ Diagrams (PNG exports; edit the `.drawio` sources, then re-export):
 | Target | Kind | Contents | Frameworks |
 |---|---|---|---|
 | `GateCore` | library | Config model and validation; fd-based file I/O; name and path rules; prompt text helpers; `KERN_PROCARGS2` parser; box and MAC crypto | Foundation, Darwin, CryptoKit |
-| `touchid-gate` | executable | argv[0] dispatch, LocalAuthentication, Secure Enclave keys, caller verification, `init`/`install`/`auth`, gate `execv` | + LocalAuthentication, Security |
+| `touchpass` | executable | argv[0] dispatch, LocalAuthentication, Secure Enclave keys, caller verification, `init`/`install`/`auth`, gate `execv` | + LocalAuthentication, Security |
 | `selftest` | executable | assert-style checks of GateCore; a software P-256 key stands in for the Secure Enclave. Run with `swift run selftest`. The Command Line Tools ship neither XCTest nor swift-testing. | GateCore only |
 
 Pure logic that runs without hardware or UI lives in `GateCore`, and `selftest` covers it. Secure Enclave, Touch ID, code signing and `execv` live in the executable. The `KeyAgreementKey` protocol joins the two: `P256.KeyAgreement.PrivateKey` (software, selftest) and `SecureEnclave.P256.KeyAgreement.PrivateKey` (executable) both conform.
@@ -33,7 +33,7 @@ flowchart LR
     Seal["Seal.swift<br/>StoreKey, Box, KeyAgreementKey, seal, openBox, macKey, newMacPeer"]
     Err["GateError.swift<br/>message, exitCode, notFound"]
   end
-  Exe["touchid-gate/main.swift"] --> GateCore
+  Exe["touchpass/main.swift"] --> GateCore
   Test["selftest/main.swift"] --> GateCore
   Exe --> LA[LocalAuthentication]
   Exe --> SE[CryptoKit SecureEnclave]
@@ -47,7 +47,7 @@ One binary; the basename of `argv[0]` selects the mode (bottom of `main.swift`).
 ```mermaid
 flowchart TD
   A["argv[0] basename"] -->|pass| P["passMode: show | insert | rm"]
-  A -->|touchid-gate| T{"argv[1]"}
+  A -->|touchpass| T{"argv[1]"}
   T -->|"init STORE (exactly 2 args)"| I[initStore]
   T -->|"install NAME (exactly 2 args)"| N[install]
   T -->|"auth REASON..."| U[authenticate]
@@ -55,7 +55,7 @@ flowchart TD
   A -->|"any other name"| G["gateMode(name)"]
 ```
 
-Dispatch handles `pass` and `touchid-gate` before gates, so `Config.validate` rejects gates with those names.
+Dispatch handles `pass` and `touchpass` before gates, so `Config.validate` rejects gates with those names.
 
 | Exit code | Meaning |
 |---|---|
@@ -94,17 +94,17 @@ Prompt text (store): `"<save|unlock> <label or store name> for <caller>.\n\nComm
 **Gate mode (`<name>`)**: invoked through a symlink named like the real tool.
 
 1. `Config.load()`; `gates[name]` must exist.
-2. `realpath(bin)`: must be a regular file, not group/other-writable, without ACL allow entries, owned by the user or root, and not touchid-gate itself (compared by device and inode, so a hardlink counts).
-3. `withPass`: `PATH = ~/.local/touchid-gate/libexec:$PATH` (or `:/usr/bin:/bin` if unset).
+2. `realpath(bin)`: must be a regular file, not group/other-writable, without ACL allow entries, owned by the user or root, and not touchpass itself (compared by device and inode, so a hardlink counts).
+3. `withPass`: `PATH = ~/.local/touchpass/libexec:$PATH` (or `:/usr/bin:/bin` if unset).
 4. `requiresAuth(args)`: `prompt: false` means no; `only` unset means yes; no non-flag argument means yes (fail closed); otherwise the first non-flag argument must be in `only`. Prompt: `.deviceOwnerAuthentication` (Touch ID or login password), reason `run <name> <args>` (args through `printable`, 120 characters).
 5. `execv(resolved, [name] + args)`: argv[0] stays the gate name, because some tools switch behaviour on it (Granted's `assumego`).
 
-**Admin commands (`touchid-gate …`)**
+**Admin commands (`touchpass …`)**
 
 | Command | Effect |
 |---|---|
 | `init <store>` | Load config; `checkParents` of the store dir; `mkdir` 0700 if missing; open it. If `key` is pinned, `.enclave-key` matches the pin, its policy equals the configured one and its blob re-derives `publicKey`: print "already initialised", done. Otherwise it never adopts what is on disk: it creates a new SE key (`kSecAttrAccessibleWhenUnlockedThisDeviceOnly` + `privateKeyUsage` + policy flag) and a new `macPeer`, removes every `*.gpg` below the store (no symlink following; a foreign-writable or unreadable subdirectory stops `init` before it writes the new key), writes `.enclave-key`, pins the fingerprint in `stores.<store>.key` and saves the config. |
-| `install <name>` | `name` must be `pass` or a configured gate. Creates `~/.local/touchid-gate/bin` (gate) or `…/libexec` (`pass`) with 0755, `checkDirectory`, then points `<dir>/<name>` at the resolved own executable, replacing only a missing path or a symlink. For gates, prints a hint if `bin` is not first in `PATH`. |
+| `install <name>` | `name` must be `pass` or a configured gate. Creates `~/.local/touchpass/bin` (gate) or `…/libexec` (`pass`) with 0755, `checkDirectory`, then points `<dir>/<name>` at the resolved own executable, replacing only a missing path or a symlink. For gates, prints a hint if `bin` is not first in `PATH`. |
 | `auth <reason…>` | `.deviceOwnerAuthentication` with the reason (through `printable`); exit 0 on approval. |
 
 ### 1.4 Data formats
@@ -122,7 +122,7 @@ All `Data` fields are base64 strings (Foundation `JSONEncoder`).
 
 Fingerprint = `"sha256:" + hex(SHA256(publicKey ‖ macPeer ‖ policy))`.
 
-**`<store>/<name>.gpg`** (`Box`, 0600, read cap 2 MiB). The `.gpg` suffix exists because keyring's pass backend checks and lists entries by it; the content is JSON, not OpenPGP. touchid-gate does not check owner and mode of entries (the MAC covers integrity); it checks the directories on the way.
+**`<store>/<name>.gpg`** (`Box`, 0600, read cap 2 MiB). The `.gpg` suffix exists because keyring's pass backend checks and lists entries by it; the content is JSON, not OpenPGP. touchpass does not check owner and mode of entries (the MAC covers integrity); it checks the directories on the way.
 
 | Field | Content |
 |---|---|
@@ -130,7 +130,7 @@ Fingerprint = `"sha256:" + hex(SHA256(publicKey ‖ macPeer ‖ policy))`.
 | `sealed` | AES-GCM combined: 12-byte nonce ‖ ciphertext ‖ 16-byte tag. |
 | `mac` | HMAC-SHA256 (32 bytes). A missing MAC is refused ("log in again"). |
 
-**`~/.config/touchid-gate/config.json`**: fixed path under the home from the user database, no environment override. Regular file, not a symlink, not group/other-writable, no ACL allow entries, owned by the user or root, max 1 MiB; every parent up to and including home likewise (deny entries, such as the one macOS puts on home, are fine). Unknown keys are ignored on load and dropped when `init` saves.
+**`~/.config/touchpass/config.json`**: fixed path under the home from the user database, no environment override. Regular file, not a symlink, not group/other-writable, no ACL allow entries, owned by the user or root, max 1 MiB; every parent up to and including home likewise (deny entries, such as the one macOS puts on home, are fine). Unknown keys are ignored on load and dropped when `init` saves.
 
 | Field | Type | Default | Rules |
 |---|---|---|---|
@@ -140,7 +140,7 @@ Fingerprint = `"sha256:" + hex(SHA256(publicKey ‖ macPeer ‖ policy))`.
 | `stores.*.callers` | [csreq string] | `[]` = nobody | Code-signing requirements the parent process must satisfy. |
 | `stores.*.label` | string | store name | Shown in the prompt. |
 | `stores.*.key` | string | none | Fingerprint pin written by `init`. `show`/`insert`/`rm` refuse while it is absent or mismatched. |
-| `gates` | object | `{}` | Names `pass` and `touchid-gate` are reserved. |
+| `gates` | object | `{}` | Names `pass` and `touchpass` are reserved. |
 | `gates.*.bin` | string | required | Absolute path of the real binary (resolved with `realpath` at run time). |
 | `gates.*.only` | [string] | unset = always | Prompt only if the first non-flag argument is listed; no non-flag argument means prompt. Must not be empty. |
 | `gates.*.prompt` | bool | `true` | `false` = no prompt of its own. |
@@ -186,7 +186,7 @@ Primitives: P-256 ECDH, HKDF-SHA256, AES-256-GCM, HMAC-SHA256 (CryptoKit). `S` =
 **MAC key** (needs the SE, therefore an evaluated context)
 
 ```
-Kmac = HKDF-SHA256(ikm = ECDH(S, M), salt = "touchid-gate mac v2", info = M, len = 32)
+Kmac = HKDF-SHA256(ikm = ECDH(S, M), salt = "touchpass mac v1", info = M, len = 32)
 ```
 
 `ECDH(S, M) = ECDH(m, S.pub)`; with `m` discarded, only the SE can compute it.
@@ -196,9 +196,9 @@ Kmac = HKDF-SHA256(ikm = ECDH(S, M), salt = "touchid-gate mac v2", info = M, len
 ```
 e      = fresh ephemeral P-256 key
 Z      = ECDH(e, S.pub)
-Kbox   = HKDF-SHA256(ikm = Z, salt = e.pub, info = "touchid-gate pass v1 " + name, len = 32)
+Kbox   = HKDF-SHA256(ikm = Z, salt = e.pub, info = "touchpass entry v1 " + name, len = 32)
 sealed = AES-GCM(Kbox, random nonce, plaintext)            no AAD
-mac    = HMAC-SHA256(Kmac, "touchid-gate mac v2" 0x00 name 0x00 ‖ e.pub ‖ sealed)
+mac    = HMAC-SHA256(Kmac, "touchpass mac v1" 0x00 name 0x00 ‖ e.pub ‖ sealed)
 box    = {ephemeral: e.pub, sealed, mac}
 ```
 
@@ -282,16 +282,16 @@ sequenceDiagram
 |---|---|---|
 | Store (pass-compatible) | Calls `pass show`, `pass insert [-m] [-f]` (secret on stdin), `pass rm [-f]` with `PASSWORD_STORE_DIR` = a configured store. Finds entries by `<dir>/<name>.gpg` or only via `show`. Has a stable code signature. | Cryptographic: SE key + Touch ID + pin + MAC; caller check as a hurdle. |
 | Gate | Any CLI. A link named like the tool, earlier in `PATH`. | Advisory: prompt before `execv`; running the real path bypasses it. |
-| `touchid-gate auth` | Scripts: `touchid-gate auth "deploy production" && make deploy`. | Advisory: exit code only; login password accepted. |
+| `touchpass auth` | Scripts: `touchpass auth "deploy production" && make deploy`. | Advisory: exit code only; login password accepted. |
 
-Other keyring users can use a store as well, e.g. aws-vault with `AWS_VAULT_BACKEND=pass`, `AWS_VAULT_PASS_CMD=~/.local/touchid-gate/libexec/pass` and `AWS_VAULT_PASS_PASSWORD_STORE_DIR=<store>`. Each needs its own store and `callers` entry; see 2.3 for why an ad-hoc signed caller makes a weak requirement.
+Other keyring users can use a store as well, e.g. aws-vault with `AWS_VAULT_BACKEND=pass`, `AWS_VAULT_PASS_CMD=~/.local/touchpass/libexec/pass` and `AWS_VAULT_PASS_PASSWORD_STORE_DIR=<store>`. Each needs its own store and `callers` entry; see 2.3 for why an ad-hoc signed caller makes a weak requirement.
 
 ### 2.2 Adding a store integration
 
 1. Add `stores.<name>` with a unique `path` and a `label`; keep the default `policy` unless you need a password fallback.
 2. Add the caller requirement to `callers` (2.3).
-3. Run `touchid-gate init <name>` (creates the directory, key and pin).
-4. Make the tool find touchid-gate's `pass`: a gate with `withPass: true` plus `touchid-gate install <tool>` and `touchid-gate install pass`, or a tool option pointing at `~/.local/touchid-gate/libexec/pass`.
+3. Run `touchpass init <name>` (creates the directory, key and pin).
+4. Make the tool find touchpass's `pass`: a gate with `withPass: true` plus `touchpass install <tool>` and `touchpass install pass`, or a tool option pointing at `~/.local/touchpass/libexec/pass`.
 5. Point the tool at the store directory (`PASSWORD_STORE_DIR` or the tool's own option).
 
 ### 2.3 Caller requirements
@@ -318,32 +318,32 @@ A caller without hardened runtime (aws-vault) accepts code injected by same-user
 ### 2.4 PATH and libexec layout
 
 ```
-~/bin/touchid-gate                           binary (ad-hoc signed, hardened runtime)
-~/.local/touchid-gate/bin/                   first in PATH
-    granted   -> ~/bin/touchid-gate          gate, prompt false, withPass
-    assumego  -> ~/bin/touchid-gate          gate, prompt false, withPass
-    aws-vault -> ~/bin/touchid-gate          gate, prompt
-~/.local/touchid-gate/libexec/               not in PATH
-    pass      -> ~/bin/touchid-gate          store mode; on PATH only for withPass gates
+~/bin/touchpass                           binary (ad-hoc signed, hardened runtime)
+~/.local/touchpass/bin/                   first in PATH
+    granted   -> ~/bin/touchpass          gate, prompt false, withPass
+    assumego  -> ~/bin/touchpass          gate, prompt false, withPass
+    aws-vault -> ~/bin/touchpass          gate, prompt
+~/.local/touchpass/libexec/               not in PATH
+    pass      -> ~/bin/touchpass          store mode; on PATH only for withPass gates
 /opt/homebrew/bin/{granted,assumego,aws-vault}   real binaries (assumego -> granted)
-~/.config/touchid-gate/config.json           config (0600)
+~/.config/touchpass/config.json           config (0600)
 ~/.granted/enclave-store/                    store (0700): .enclave-key, <prefix>/<key>.gpg
 ```
 
-Put `~/.local/touchid-gate/bin` in front of anything that adds shims (pyenv, asdf), so the shims cannot shadow the gates.
+Put `~/.local/touchpass/bin` in front of anything that adds shims (pyenv, asdf), so the shims cannot shadow the gates.
 
-libexec stays private for three reasons: a global `pass` would shadow a real `pass` for every program; tools that are not store callers would reach touchid-gate's `pass` and fail with caller or store-lookup errors; and the set of processes that talk to the store stays small.
+libexec stays private for three reasons: a global `pass` would shadow a real `pass` for every program; tools that are not store callers would reach touchpass's `pass` and fail with caller or store-lookup errors; and the set of processes that talk to the store stays small.
 
 Coexistence with a real `pass`:
 
 | Who | `pass` resolves to |
 |---|---|
 | shells and ordinary tools | real `pass` |
-| Granted started through its gates | touchid-gate (libexec prepended) |
-| children of a `withPass` tool, e.g. the `assume --exec` command | touchid-gate, if the tool passes its environment through |
-| a `withPass` tool that wants the real `pass` for `~/.password-store` | touchid-gate, which refuses unless that directory is a configured store |
+| Granted started through its gates | touchpass (libexec prepended) |
+| children of a `withPass` tool, e.g. the `assume --exec` command | touchpass, if the tool passes its environment through |
+| a `withPass` tool that wants the real `pass` for `~/.password-store` | touchpass, which refuses unless that directory is a configured store |
 
-The real `pass` cannot read touchid-gate stores (JSON, not GPG). touchid-gate implements only `show`, `insert` and `rm`; `ls`, `find`, `git`, `generate` and `edit` are usage errors.
+The real `pass` cannot read touchpass stores (JSON, not GPG). touchpass implements only `show`, `insert` and `rm`; `ls`, `find`, `git`, `generate` and `edit` are usage errors.
 
 ## 3. Threat model
 
@@ -367,7 +367,7 @@ The real `pass` cannot read touchid-gate stores (JSON, not GPG). touchid-gate im
 | directory named `<x>.gpg` so `rm` deletes a tree | yes | `removeRegularFile` refuses non-regular files |
 | newlines / bidi overrides in argv to fake prompt lines | mitigated | `printable`; caller identity from its code signature. Argv content stays caller-chosen and the prompt labels it so |
 | huge stdin, entry or config | yes | 1 MiB stdin, 2 MiB entry, 64 KiB key, 1 MiB config |
-| code injection into touchid-gate | yes | hardened runtime |
+| code injection into touchpass | yes | hardened runtime |
 | replaces `/opt/homebrew/bin/granted` | yes for the store | fails the team requirement; the gate would still exec it |
 | spawns `pass`, then execs into Granted (same pid) | no | pid-based check; Touch ID remains the barrier |
 | runs `assume`/Granted itself | no (by design) | a trusted binary doing its job; the prompt names Granted and the command |
@@ -376,11 +376,11 @@ The real `pass` cannot read touchid-gate stores (JSON, not GPG). touchid-gate im
 | rolls back an entry to an older genuine version | no | nothing binds time or a counter |
 | deletes entries or the store | no | `rm` needs no prompt, and the same uid can unlink anyway. Result: a new login, not disclosure |
 | rewrites config (pin, callers) and `.enclave-key`, waits for the next login | no (out of scope) | same-user writable; new entries would be sealed to the attacker's key |
-| replaces `~/bin/touchid-gate` or a link | no (out of scope) | same-user writable, not verified |
+| replaces `~/bin/touchpass` or a link | no (out of scope) | same-user writable, not verified |
 | runs the real binary instead of a gate | no (by design) | gates are a convenience prompt |
 | `only` bypass with space-separated flag values (`git -C dir push`) | no | the first non-flag argument counts as the subcommand |
 | enrols own fingerprint (knows the password, physical access) | yes for `biometryCurrentSet`, no for `biometryAny`/`userPresence` | an enrolment change invalidates only `biometryCurrentSet` keys |
-| reads plaintext from the caller after `show` | no | outside touchid-gate |
+| reads plaintext from the caller after `show` | no | outside touchpass |
 | root or kernel compromise | no | can drive callers and wait for approval; the SE still keeps `S` unextractable |
 
-Binding the SE key to touchid-gate itself, so that other same-user processes cannot use the blob, needs the data-protection keychain with a keychain access group (Developer ID plus a provisioning profile). CryptoKit blobs cannot carry an access group, and an ad-hoc build cannot have one.
+Binding the SE key to touchpass itself, so that other same-user processes cannot use the blob, needs the data-protection keychain with a keychain access group (Developer ID plus a provisioning profile). CryptoKit blobs cannot carry an access group, and an ad-hoc build cannot have one.

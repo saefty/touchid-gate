@@ -50,24 +50,24 @@ extension P256.KeyAgreement.PrivateKey: KeyAgreementKey {
     }
 }
 
-// box encryption: format v1; changing this breaks existing stores
+// format v1: changing a label or the MAC input layout breaks existing stores
 func boxKey(_ secret: SharedSecret, ephemeral: Data, name: String) -> SymmetricKey {
     // the entry name is bound so a box cannot be replayed under another entry
     secret.hkdfDerivedSymmetricKey(using: SHA256.self, salt: ephemeral,
-                                   sharedInfo: Data("touchid-gate pass v1 \(name)".utf8),
+                                   sharedInfo: Data("touchpass entry v1 \(name)".utf8),
                                    outputByteCount: 32)
 }
 
 /// Static until the next init: one leaked ECDH(SE key, macPeer) forges entries until then.
 public func macKey(_ key: KeyAgreementKey, peer: Data) throws -> SymmetricKey {
     let secret = try key.sharedSecret(with: P256.KeyAgreement.PublicKey(x963Representation: peer))
-    return secret.hkdfDerivedSymmetricKey(using: SHA256.self, salt: Data("touchid-gate mac v2".utf8),
+    return secret.hkdfDerivedSymmetricKey(using: SHA256.self, salt: Data("touchpass mac v1".utf8),
                                           sharedInfo: peer, outputByteCount: 32)
 }
 
 func macInput(_ box: Box, name: String) -> Data {
     // names come from argv and cannot contain NUL; the ephemeral key has a fixed length
-    Data("touchid-gate mac v2\u{0}\(name)\u{0}".utf8) + box.ephemeral + box.sealed
+    Data("touchpass mac v1\u{0}\(name)\u{0}".utf8) + box.ephemeral + box.sealed
 }
 
 /// Encryption needs only the public key; the MAC key needs the SE blob and one approval.

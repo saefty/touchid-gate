@@ -5,10 +5,10 @@
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
 
-        <mxCell id="title" value="&lt;b&gt;touchid-gate: AWS login with your fingerprint&lt;/b&gt;" style="text;html=1;fontSize=20;align=left;verticalAlign=middle;" vertex="1" parent="1">
+        <mxCell id="title" value="&lt;b&gt;touchpass: AWS login with your fingerprint&lt;/b&gt;" style="text;html=1;fontSize=20;align=left;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="20" y="10" width="700" height="36" as="geometry" />
         </mxCell>
-        <mxCell id="subtitle" value="With touchid-gate, Granted keeps your SSO token out of the login keychain. It is encrypted with a key inside the Secure Enclave, and every read needs your finger." style="text;html=1;fontSize=13;align=left;verticalAlign=middle;fontColor=#555555;" vertex="1" parent="1">
+        <mxCell id="subtitle" value="With touchpass, Granted keeps your SSO token out of the login keychain. It is encrypted with a key inside the Secure Enclave, and every read needs your finger." style="text;html=1;fontSize=13;align=left;verticalAlign=middle;fontColor=#555555;" vertex="1" parent="1">
           <mxGeometry x="20" y="46" width="1290" height="26" as="geometry" />
         </mxCell>
 
@@ -19,13 +19,13 @@
         <mxCell id="s1" value="&lt;b&gt;1 · Terminal&lt;/b&gt;&lt;br&gt;&lt;font face=&quot;Menlo&quot;&gt;assume &amp;lt;profile&amp;gt;&lt;/font&gt;&lt;br&gt;(optionally with --exec)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;arcSize=10;" vertex="1" parent="1">
           <mxGeometry x="20" y="110" width="190" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="s2" value="&lt;b&gt;2 · Wrapper&lt;/b&gt;&lt;br&gt;touchid-gate starts the real granted and gives it access to the store" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;arcSize=10;" vertex="1" parent="1">
+        <mxCell id="s2" value="&lt;b&gt;2 · Wrapper&lt;/b&gt;&lt;br&gt;touchpass starts the real granted and gives it access to the store" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;arcSize=10;" vertex="1" parent="1">
           <mxGeometry x="240" y="110" width="190" height="100" as="geometry" />
         </mxCell>
         <mxCell id="s3" value="&lt;b&gt;3 · granted&lt;/b&gt;&lt;br&gt;needs your SSO token and asks the store for it" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;arcSize=10;" vertex="1" parent="1">
           <mxGeometry x="460" y="110" width="190" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="s4" value="&lt;b&gt;4 · Store&lt;/b&gt; (touchid-gate)&lt;br&gt;checks: is it really granted asking? Is the key unchanged?" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;arcSize=10;" vertex="1" parent="1">
+        <mxCell id="s4" value="&lt;b&gt;4 · Store&lt;/b&gt; (touchpass)&lt;br&gt;checks: is it really granted asking? Is the key unchanged?" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;arcSize=10;" vertex="1" parent="1">
           <mxGeometry x="680" y="110" width="190" height="100" as="geometry" />
         </mxCell>
         <mxCell id="s5" value="&lt;b&gt;5 · Touch ID prompt&lt;/b&gt;&lt;br&gt;shows the caller and the command. You place your finger" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;arcSize=10;" vertex="1" parent="1">
@@ -35,7 +35,7 @@
           <mxGeometry x="1120" y="110" width="190" height="100" as="geometry" />
         </mxCell>
 
-        <mxCell id="s7" value="&lt;b&gt;7 · Back to granted&lt;/b&gt;&lt;br&gt;touchid-gate hands the token to granted through a pipe and never writes it to disk" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;arcSize=10;" vertex="1" parent="1">
+        <mxCell id="s7" value="&lt;b&gt;7 · Back to granted&lt;/b&gt;&lt;br&gt;touchpass hands the token to granted through a pipe and never writes it to disk" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;arcSize=10;" vertex="1" parent="1">
           <mxGeometry x="900" y="250" width="410" height="70" as="geometry" />
         </mxCell>
         <mxCell id="s8" value="&lt;b&gt;8 · AWS&lt;/b&gt;&lt;br&gt;granted exchanges the token for STS credentials" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;arcSize=10;" vertex="1" parent="1">
@@ -54,7 +54,7 @@
         <mxCell id="a7" style="endArrow=block;html=1;strokeWidth=2;strokeColor=#666666;" edge="1" parent="1" source="s7" target="s8"><mxGeometry relative="1" as="geometry" /></mxCell>
         <mxCell id="a8" style="endArrow=block;html=1;strokeWidth=2;strokeColor=#666666;" edge="1" parent="1" source="s8" target="s9"><mxGeometry relative="1" as="geometry" /></mxCell>
 
-        <mxCell id="files" value="&lt;b&gt;Where things live&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;font face=&quot;Menlo&quot;&gt;~/.granted/config&lt;/font&gt;: makes granted use the store (&lt;font face=&quot;Menlo&quot;&gt;Backend = &quot;pass&quot;&lt;/font&gt;)&lt;br&gt;&lt;font face=&quot;Menlo&quot;&gt;~/.granted/enclave-store/&lt;/font&gt;: your tokens, encrypted&lt;br&gt;&lt;font face=&quot;Menlo&quot;&gt;~/.config/touchid-gate/config.json&lt;/font&gt;: which programs may ask, key pin&lt;br&gt;&lt;font face=&quot;Menlo&quot;&gt;~/.local/touchid-gate/bin/&lt;/font&gt;: wrappers for granted, assumego, aws-vault (first in PATH)&lt;br&gt;&lt;br&gt;&lt;b&gt;Changed your fingerprints?&lt;/b&gt; The old key stops working:&lt;br&gt;&lt;font face=&quot;Menlo&quot;&gt;rm -r ~/.granted/enclave-store; touchid-gate init granted&lt;/font&gt;, then log in via SSO once." style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=14;fillColor=#ffffff;strokeColor=#999999;fontSize=12;arcSize=4;" vertex="1" parent="1">
+        <mxCell id="files" value="&lt;b&gt;Where things live&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;font face=&quot;Menlo&quot;&gt;~/.granted/config&lt;/font&gt;: makes granted use the store (&lt;font face=&quot;Menlo&quot;&gt;Backend = &quot;pass&quot;&lt;/font&gt;)&lt;br&gt;&lt;font face=&quot;Menlo&quot;&gt;~/.granted/enclave-store/&lt;/font&gt;: your tokens, encrypted&lt;br&gt;&lt;font face=&quot;Menlo&quot;&gt;~/.config/touchpass/config.json&lt;/font&gt;: which programs may ask, key pin&lt;br&gt;&lt;font face=&quot;Menlo&quot;&gt;~/.local/touchpass/bin/&lt;/font&gt;: wrappers for granted, assumego, aws-vault (first in PATH)&lt;br&gt;&lt;br&gt;&lt;b&gt;Changed your fingerprints?&lt;/b&gt; The old key stops working:&lt;br&gt;&lt;font face=&quot;Menlo&quot;&gt;rm -r ~/.granted/enclave-store; touchpass init granted&lt;/font&gt;, then log in via SSO once." style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=14;fillColor=#ffffff;strokeColor=#999999;fontSize=12;arcSize=4;" vertex="1" parent="1">
           <mxGeometry x="20" y="360" width="640" height="170" as="geometry" />
         </mxCell>
 
@@ -69,7 +69,7 @@
           <mxGeometry x="20" y="550" width="1290" height="40" as="geometry" />
         </mxCell>
 
-        <mxCell id="leg1" value="touchid-gate / Granted" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+        <mxCell id="leg1" value="touchpass / Granted" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="20" y="610" width="160" height="26" as="geometry" />
         </mxCell>
         <mxCell id="leg2" value="macOS" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
