@@ -51,6 +51,7 @@ flowchart TD
   T -->|"init STORE (exactly 2 args)"| I[initStore]
   T -->|"install NAME (exactly 2 args)"| N[install]
   T -->|"auth REASON..."| U[authenticate]
+  T -->|"--version"| V[print version]
   T -->|other| X["usage, exit 64"]
   A -->|"any other name"| G["gateMode(name)"]
 ```
@@ -104,8 +105,9 @@ Prompt text (store): `"<save|unlock> <label or store name> for <caller>.\n\nComm
 | Command | Effect |
 |---|---|
 | `init <store>` | Load config; `checkParents` of the store dir; `mkdir` 0700 if missing; open it. If `key` is pinned, `.enclave-key` matches the pin, its policy equals the configured one and its blob re-derives `publicKey`: print "already initialised", done. Otherwise it never adopts what is on disk: it creates a new SE key (`kSecAttrAccessibleWhenUnlockedThisDeviceOnly` + `privateKeyUsage` + policy flag) and a new `macPeer`, removes every `*.gpg` below the store (no symlink following; a foreign-writable or unreadable subdirectory stops `init` before it writes the new key), writes `.enclave-key`, pins the fingerprint in `stores.<store>.key` and saves the config. |
-| `install <name>` | `name` must be `pass` or a configured gate. Creates `~/.local/touchpass/bin` (gate) or `…/libexec` (`pass`) with 0755, `checkDirectory`, then points `<dir>/<name>` at the resolved own executable, replacing only a missing path or a symlink. For gates, prints a hint if `bin` is not first in `PATH`. |
+| `install <name>` | `name` must be `pass` or a configured gate. Creates `~/.local/touchpass/bin` (gate) or `…/libexec` (`pass`) with 0755, `checkDirectory`, then points `<dir>/<name>` at the own executable (for a Homebrew keg, at `…/opt/touchpass/bin/touchpass`, which survives upgrades, instead of the versioned Cellar path), replacing only a missing path or a symlink. For gates, prints a hint if `bin` is not first in `PATH`. |
 | `auth <reason…>` | `.deviceOwnerAuthentication` with the reason (through `printable`); exit 0 on approval. |
+| `--version` | Prints `touchpass <version>`. |
 
 ### 1.4 Data formats
 

@@ -11,6 +11,7 @@ import GateCore
 import LocalAuthentication
 import Security
 
+let version = "0.1.0"
 let binDir = realHome + "/.local/touchpass/bin"
 // deliberately not on PATH: only gates with "withPass" see it, so a real `pass` keeps working
 let libexecDir = realHome + "/.local/touchpass/libexec"
@@ -286,7 +287,11 @@ func install(_ name: String) throws {
     guard name == "pass" || config.gates[name] != nil else {
         throw GateError("'\(name)' is neither 'pass' nor a configured gate")
     }
-    guard let exe = Bundle.main.executableURL?.resolvingSymlinksInPath().path else { throw GateError("cannot locate myself") }
+    guard let real = Bundle.main.executableURL?.resolvingSymlinksInPath().path else { throw GateError("cannot locate myself") }
+    // link through Homebrew's opt alias only if it really leads back to this binary
+    let stable = stableExecutablePath(real)
+    var a = stat(), b = stat()
+    let exe = stat(stable, &a) == 0 && stat(real, &b) == 0 && a.st_dev == b.st_dev && a.st_ino == b.st_ino ? stable : real
     let dir = name == "pass" ? libexecDir : binDir
     try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true,
                                             attributes: [.posixPermissions: 0o755])
@@ -314,7 +319,8 @@ do {
         case "init" where rest.count == 2: try initStore(rest[1])
         case "install" where rest.count == 2: try install(rest[1])
         case "auth": try authenticate(rest.dropFirst().map(printable).joined(separator: " "))
-        default: throw GateError.usage("usage: touchpass init <store> | install <name> | auth <reason…>")
+        case "--version" where rest.count == 1: print("touchpass \(version)")
+        default: throw GateError.usage("usage: touchpass init <store> | install <name> | auth <reason…> | --version")
         }
     default:
         try gateMode(invokedAs, rest)

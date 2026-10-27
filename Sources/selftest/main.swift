@@ -67,6 +67,15 @@ withUnsafeBytes(of: Int32(3)) { procargs += $0 }
 procargs += Array("/bin/x".utf8) + [0, 0, 0] + Array("x".utf8) + [0, 0] + Array("b".utf8) + [0] + Array("ENV=1".utf8) + [0]
 check(parseProcArgs(procargs) == ["x", "", "b"], "procargs keeps empty args, stops at argc")
 
+// install links: Homebrew keg paths map to the opt alias that survives upgrades
+check(stableExecutablePath("/opt/homebrew/Cellar/touchpass/0.1.0/bin/touchpass") == "/opt/homebrew/opt/touchpass/bin/touchpass",
+      "Apple silicon keg path maps to opt")
+check(stableExecutablePath("/usr/local/Cellar/touchpass/0.1.0_1/bin/touchpass") == "/usr/local/opt/touchpass/bin/touchpass",
+      "Intel keg path maps to opt")
+for keep in ["/Users/me/bin/touchpass", "/opt/homebrew/Cellar/touchpass/0.1.0/libexec/touchpass", "/x/Cellar/bin/touchpass"] {
+    check(stableExecutablePath(keep) == keep, "non-keg path kept: \(keep)")
+}
+
 // sealing: round trip, MAC required, forgery and tampering refused
 let se = P256.KeyAgreement.PrivateKey()
 let peer = newMacPeer()

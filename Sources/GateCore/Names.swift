@@ -108,6 +108,14 @@ public func middleTruncated(_ s: String, max: Int) -> String {
         + String(String.UnicodeScalarView(scalars.suffix(max - 1 - head)))
 }
 
+/// A Homebrew keg path (`…/Cellar/<formula>/<version>/bin/<tool>`) disappears on upgrade;
+/// its `…/opt/<formula>/bin/<tool>` alias does not. Any other path comes back unchanged.
+public func stableExecutablePath(_ resolved: String) -> String {
+    let parts = resolved.split(separator: "/", omittingEmptySubsequences: false).map(String.init)
+    guard let i = parts.lastIndex(of: "Cellar"), parts.count == i + 5, parts[i + 3] == "bin" else { return resolved }
+    return (parts[..<i] + ["opt", parts[i + 1], "bin", parts[i + 4]]).joined(separator: "/")
+}
+
 /// KERN_PROCARGS2 layout: argc (Int32), exec path, NUL padding, then argc NUL-terminated
 /// strings (which may be empty).
 public func parseProcArgs(_ buf: [UInt8]) -> [String] {

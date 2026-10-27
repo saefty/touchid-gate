@@ -23,7 +23,15 @@ Granted and similar tools keep SSO tokens and session credentials in the login k
 - A Mac with Touch ID and a Secure Enclave
 - Swift 5.9 (the Xcode Command Line Tools are enough)
 
-## Build and install
+## Install
+
+With Homebrew (builds from source, needs the Xcode Command Line Tools):
+
+```sh
+brew install saefty/tap/touchpass
+```
+
+From source:
 
 ```sh
 swift build -c release
@@ -33,7 +41,7 @@ cp .build/release/touchpass ~/bin/
 codesign -s - -i touchpass -o runtime -f ~/bin/touchpass   # ad-hoc, hardened runtime, stable identifier
 ```
 
-The examples below call `touchpass` by name, so put `~/bin` on your `PATH` or use the full path.
+The examples below call `touchpass` by name. For a source build, put `~/bin` on your `PATH` or use the full path.
 
 The binary picks its mode from the name you call it by. `touchpass install` creates the symlinks for that:
 
@@ -41,7 +49,7 @@ The binary picks its mode from the name you call it by. `touchpass install` crea
 |---|---|
 | `pass` | store mode: `show`, `insert`, `rm` |
 | a configured gate name, e.g. `terraform` | Touch ID prompt, then `exec` of the real binary |
-| `touchpass` | admin commands: `init`, `install`, `auth` |
+| `touchpass` | admin commands: `init`, `install`, `auth`, `--version` |
 
 ## Quick start: Granted
 
